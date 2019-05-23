@@ -5,6 +5,7 @@ namespace WorldGenerator
 {
     public class Chunk
     {
+        public ChunkCoord coord;
         GameObject chunkObject;
         public MeshRenderer meshRenderer;
         public MeshFilter meshFilter;
@@ -18,14 +19,17 @@ namespace WorldGenerator
         readonly byte[,,] blockMap = new byte[chunkSize, chunkSize, chunkSize];
 
         World world;
-        public Chunk(World _world)
+        public Chunk(ChunkCoord _coord, World _world)
         {
+            coord = _coord;
             world = _world;
             chunkObject = new GameObject();
             meshFilter = chunkObject.AddComponent<MeshFilter>();
             meshRenderer = chunkObject.AddComponent<MeshRenderer>();
             meshRenderer.material = world.material;
             chunkObject.transform.SetParent(world.transform);
+            chunkObject.transform.position = new Vector3(coord.x * chunkSize, coord.y * chunkSize, coord.z * chunkSize);
+            chunkObject.name = "Chunk " + coord.x + "x, " + coord.z + "z, " + coord.y + "y";
             PopulateBlockMap();
             CreateChunkMesh();
             CreateMesh();
@@ -38,18 +42,7 @@ namespace WorldGenerator
                 {
                     for (int z = 0; z < chunkSize; z++)
                     {
-                        if (y < 1)
-                        {
-                            blockMap[x, y, z] = 1;
-                        }
-                        else if (y == chunkSize - 1)
-                        {
-                            blockMap[x, y, z] = 2;
-                        }
-                        else
-                        {
-                            blockMap[x, y, z] = 3;
-                        }
+                        blockMap[x, y, z] = world.GetBlock(new Vector3(x, y, z) + position);
                     }
                 }
             }
@@ -76,16 +69,36 @@ namespace WorldGenerator
                 }
             }
         }
+        bool IsVoxelInChunk(int x, int y, int z)
+        {
+            if (x < 0 || x > chunkSize - 1 || y < 0 || y > chunkSize - 1 || z < 0 || z > chunkSize - 1)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
         bool CheckVoxel(Vector3 pos)
         {
             int x = Mathf.FloorToInt(pos.x);
             int y = Mathf.FloorToInt(pos.y);
             int z = Mathf.FloorToInt(pos.z);
-            if (x < 0 || x > chunkSize - 1 || y < 0 || y > chunkSize - 1 || z < 0 || z > chunkSize - 1)
+            if (!IsVoxelInChunk(x,y,z))
             {
-                return false;
+                return world.blockType[world.GetBlock(pos + position)].isSolid;
             }
             return world.blockType[blockMap[x, y, z]].isSolid;
+        }
+        public bool IsActive
+        {
+            get { return chunkObject.activeSelf; }
+            set { chunkObject.SetActive(value); }
+        }
+        public Vector3 position
+        {
+            get { return chunkObject.transform.position; }
         }
         void CreateChunkMesh()
         {
@@ -124,6 +137,33 @@ namespace WorldGenerator
             uvs.Add(new Vector2(x, y + Block.NormalizedBlockTextureSize));
             uvs.Add(new Vector2(x + Block.NormalizedBlockTextureSize, y));
             uvs.Add(new Vector2(x + Block.NormalizedBlockTextureSize, y + Block.NormalizedBlockTextureSize));
+        }
+    }
+    public class ChunkCoord
+    {
+        public int x;
+        public int y;
+        public int z;
+        public ChunkCoord(int _x, int _y, int _z)
+        {
+            x = _x;
+            y = _y;
+            z = _z;
+        }
+        public bool Equals(ChunkCoord other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+            else if (other.x == x && other.y == y && other.z == z)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }
