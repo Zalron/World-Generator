@@ -360,8 +360,8 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: c2290000
-      m_LastClickedID: 0
+      m_SelectedIDs: 2afaffff
+      m_LastClickedID: -1494
       m_ExpandedIDs: 8efbffff
       m_RenameOverlay:
         m_UserAcceptedRename: 0
@@ -422,9 +422,9 @@ MonoBehaviour:
   m_PlayAudio: 0
   m_AudioPlay: 0
   m_Position:
-    m_Target: {x: 1.6580448, y: 0.4481616, z: 5.5832973}
+    m_Target: {x: 6.4178667, y: 10.941517, z: 24.350388}
     speed: 2
-    m_Value: {x: 1.6580448, y: 0.4481616, z: 5.5832973}
+    m_Value: {x: 6.4178667, y: 10.941517, z: 24.350388}
   m_RenderMode: 0
   m_CameraMode:
     drawMode: 0
@@ -453,13 +453,13 @@ MonoBehaviour:
       speed: 2
       m_Value: 0
   m_Rotation:
-    m_Target: {x: 0.28857285, y: -0.69546926, z: 0.36764607, w: 0.54580855}
+    m_Target: {x: -0.016166693, y: -0.05034728, z: -0.0008202493, w: 0.9986163}
     speed: 2
-    m_Value: {x: 0.29405156, y: -0.6871965, z: 0.3632722, w: 0.55617255}
+    m_Value: {x: -0.01616644, y: -0.050346494, z: -0.0008202365, w: 0.99860066}
   m_Size:
-    m_Target: 52.007263
+    m_Target: 38.622803
     speed: 2
-    m_Value: 57.15084
+    m_Value: 38.622803
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -617,7 +617,7 @@ MonoBehaviour:
     m_ShowAllHits: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Materials
+    - Assets/ScriptableObjects/BlockTypes
   m_ViewMode: 0
   m_StartGridSize: 67
   m_LastFolders: []
@@ -658,7 +658,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: ffffffff0000000058290000da2c0000362d00003a2d0000
+    m_ExpandedIDs: ffffffff0000000058290000e0290000da2c0000362d00003a2d0000922e0000982e0000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -674,7 +674,7 @@ MonoBehaviour:
       m_IsRenaming: 0
       m_OriginalEventType: 11
       m_IsRenamingFilename: 1
-      m_ClientGUIView: {fileID: 9}
+      m_ClientGUIView: {fileID: 8}
     m_SearchString: 
     m_CreateAssetUtility:
       m_EndAction: {fileID: 0}
@@ -745,7 +745,7 @@ MonoBehaviour:
   m_LockTracker:
     m_IsLocked: 0
   m_PreviewResizer:
-    m_CachedPref: 284
+    m_CachedPref: 692
     m_ControlHash: -371814159
     m_PrefName: Preview_InspectorPreview
   m_PreviewWindow: {fileID: 0}
