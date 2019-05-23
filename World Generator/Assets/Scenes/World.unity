@@ -323,6 +323,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac1e516f548a2744cb439714252ed5d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  seed: 2147483647
   Player: {fileID: 963194228}
   spawnPosition: {x: 0, y: 0, z: 0}
   material: {fileID: 2100000, guid: 02798182e3d104644a12544b44d7b718, type: 2}
@@ -331,6 +332,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 99bef3b20a900434b8c7042a63174fa0, type: 2}
   - {fileID: 11400000, guid: 028be2769f2288f4aa8c64d52a3d3fa2, type: 2}
   - {fileID: 11400000, guid: 256a094b43c409a4ca476b66e24d9b3f, type: 2}
+  - {fileID: 11400000, guid: 52afa2e5ff8b83043a54c16198fb817e, type: 2}
 --- !u!4 &2056144483
 Transform:
   m_ObjectHideFlags: 0

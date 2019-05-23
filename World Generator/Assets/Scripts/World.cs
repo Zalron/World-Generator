@@ -5,6 +5,7 @@ namespace WorldGenerator
 {
     public class World : MonoBehaviour
     {
+        public int seed;
         public Transform Player;
         public Vector3 spawnPosition;
 
@@ -25,7 +26,8 @@ namespace WorldGenerator
         }
         public void Start()
         {
-            spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, 257, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
+            Random.InitState(seed);
+            spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, (WorldSizeInChunks * Chunk.chunkSize) / 2f, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
             GenerateWorld();
             playerLastChunkCoord = GetChunkCoordFromVector3(Player.position);
         }
@@ -80,16 +82,16 @@ namespace WorldGenerator
             }
             foreach (ChunkCoord c in previouslyActiveChunks)
             {
-                chunks[c.x, c.y, c.y].IsActive = false;
+                chunks[c.x, c.y, c.z].IsActive = true;
             } 
         }
         void GenerateWorld()
         {
-            for (int x = (WorldSizeInChunks/2) - ViewDistanceInChunks; x < (WorldSizeInChunks / 2) + ViewDistanceInChunks; x++)
+            for (int x = 0; x < WorldSizeInChunks; x++)
             {
-                for (int y = (WorldSizeInChunks / 2) - ViewDistanceInChunks; y < (WorldSizeInChunks / 2) + ViewDistanceInChunks; y++)
+                for (int y = 0; y < WorldSizeInChunks; y++)
                 {
-                    for (int z = (WorldSizeInChunks / 2) - ViewDistanceInChunks; z < (WorldSizeInChunks / 2) + ViewDistanceInChunks; z++)
+                    for (int z = 0; z <WorldSizeInChunks; z++)
                     {
                         CreateNewChunk(x, y, z);
                     }
@@ -104,17 +106,27 @@ namespace WorldGenerator
         }
         public byte GetBlock(Vector3 pos)
         {
+            // IMMUTABLE PASS
+            int yPos = Mathf.FloorToInt(pos.y);
             if (!IsBlockInWorld(pos))
             {
                 return 0;
             }
-            if (pos.y < 1)
+
+            if (yPos == 0)
             {
                 return 1;
             }
-            else if (pos.y == WorldSizeInBlocks - 1)
+
+            // BASIC TERRAIN PASS
+            int terrainHeight = Mathf.FloorToInt(WorldSizeInBlocks * Biomes.Get2DSimplex(new Vector2(pos.x, pos.z), 500, 0.25f));
+            if (yPos == terrainHeight)
             {
                 return 3;
+            }
+            else if (yPos>terrainHeight)
+            {
+                return 0;
             }
             else
             {

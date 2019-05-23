@@ -108,7 +108,10 @@ namespace WorldGenerator
                 {
                     for (int z = 0; z < chunkSize; z++)
                     {
-                        AddBlockDataToChunk(new Vector3(x, y, z));
+                        if (world.blockType[blockMap[x,y,z]].isSolid)
+                        {
+                            AddBlockDataToChunk(new Vector3(x, y, z));
+                        }
                     }
                 }
             }
