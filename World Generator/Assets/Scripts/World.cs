@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Jobs;
+using Unity.Jobs;
 namespace WorldGenerator
 {
     public class World : MonoBehaviour
@@ -20,6 +22,7 @@ namespace WorldGenerator
         ChunkCoord playerLastChunkCoord;
 
         List<ChunkCoord> chunksToCreate = new List<ChunkCoord>();
+        private bool IsCreatingChunks;
 
         public static readonly int ViewDistanceInChunks = 5;
         public static readonly int WorldSizeInChunks = 64;
@@ -30,7 +33,7 @@ namespace WorldGenerator
         public void Start()
         {
             Random.InitState(seed);
-            spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, 1000, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
+            spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, biome.solidGroundHeight + 20, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
             GenerateWorld();
             playerLastChunkCoord = GetChunkCoordFromVector3(Player.position);
         }
@@ -41,6 +44,23 @@ namespace WorldGenerator
             {
                 CheckViewDistance();
             }
+            if (chunksToCreate.Count > 0 && !IsCreatingChunks)
+            {
+                StartCoroutine(CreateChunks());
+            }
+        }
+        IEnumerator CreateChunks()
+        {
+            IsCreatingChunks = true;
+
+            while (chunksToCreate.Count > 0)
+            {
+                chunks[chunksToCreate[0].x, chunksToCreate[0].y, chunksToCreate[0].z].Init();
+                chunksToCreate.RemoveAt(0);
+                yield return null;
+            }
+
+            IsCreatingChunks = false;
         }
         ChunkCoord GetChunkCoordFromVector3(Vector3 pos)
         {
@@ -66,13 +86,14 @@ namespace WorldGenerator
                         {
                             if (chunks[x, y, z] == null)
                             {
-                                CreateNewChunk(x, y, z);
+                                chunks[x, y, z] = new Chunk(new ChunkCoord(x, y, z), this, false);
+                                chunksToCreate.Add(new ChunkCoord(x,y,z));
                             }
                             else if(!chunks[x,y,z].IsActive)
                             {
                                 chunks[x, y, z].IsActive = true;
-                                activeChunks.Add(new ChunkCoord(x, y, z));
                             }
+                            activeChunks.Add(new ChunkCoord(x, y, z));
                         }
                         for (int i = 0; i < previouslyActiveChunks.Count; i++)
                         {
@@ -91,38 +112,32 @@ namespace WorldGenerator
         }
         void GenerateWorld()
         {
+            Player.position = spawnPosition;
             for (int x = (WorldSizeInChunks/2) - ViewDistanceInChunks; x < (WorldSizeInChunks / 2) + ViewDistanceInChunks; x++)
             {
                 for (int y = (WorldSizeInChunks / 2) - ViewDistanceInChunks; y < (WorldSizeInChunks / 2) + ViewDistanceInChunks; y++)
                 {
                     for (int z = (WorldSizeInChunks / 2) - ViewDistanceInChunks; z < (WorldSizeInChunks / 2) + ViewDistanceInChunks; z++)
                     {
-                        CreateNewChunk(x, y, z);
+                        chunks[x, y, z] = new Chunk(new ChunkCoord(x,y,z), this, true);
+                        activeChunks.Add(new ChunkCoord(x, y, z));
                     }
                 }
             }
-            Player.position = spawnPosition;
         }
-        void CreateNewChunk(int x, int y, int z)
+        public bool CheckForBlockInChunk(Vector3 pos)
         {
-            chunks[x, y, z] = new Chunk(new ChunkCoord(x, y, z), this);
-            activeChunks.Add(new ChunkCoord(x, y, z));
-        }
-        public bool CheckForBlockInChunk(float _x, float _y, float _z)
-        {
-            int xCheck = Mathf.FloorToInt(_x);
-            int yCheck = Mathf.FloorToInt(_y);
-            int zCheck = Mathf.FloorToInt(_z);
+            ChunkCoord thisChunk = new ChunkCoord(pos);
 
-            int xChunk = xCheck / Chunk.chunkSize;
-            int yChunk = yCheck / Chunk.chunkSize;
-            int zChunk = zCheck / Chunk.chunkSize;
-
-            xCheck -= (xChunk * Chunk.chunkSize);
-            yCheck -= (yChunk * Chunk.chunkSize);
-            zCheck -= (zChunk * Chunk.chunkSize);
-
-            return blockType[chunks[xChunk, yChunk, zChunk].blockMap[xCheck, yCheck, zCheck]].isSolid;
+            if (!IsBlockInWorld(pos))
+            {
+                return false;
+            }
+            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].IsBlockMapPopulated)
+            {
+                return blockType[chunks[thisChunk.x, thisChunk.y, thisChunk.z].GetBlockFromGlobalVector3(pos)].isSolid;
+            }
+            return blockType[GetBlock(pos)].isSolid;
         }
         public byte GetBlock(Vector3 pos)
         {
@@ -139,19 +154,24 @@ namespace WorldGenerator
             }
 
             // BASIC TERRAIN PASS
-            int terrainHeight = Mathf.FloorToInt(biome.terrainHeight * Terrian.Get2DSimplex(new Vector2(pos.x, pos.z), 0, biome.terrainScale)) + biome.solidGroundHeight;
+            int terrainHeight = Mathf.FloorToInt(biome.terrainHeight * Terrian.Get2DSimplex(new Vector2(pos.x, pos.z), 0, biome.terrainScale));
+            int solidGroundHeight = Mathf.FloorToInt(biome.solidGroundHeight * Terrian.Get2DSimplex(new Vector2(pos.x, pos.z), 0, biome.terrainScale));
             byte blockValue;
             if (yPos == terrainHeight)
             {
-                blockValue = 3;
+                blockValue = 3; //grass
             }
-            else if (yPos < terrainHeight && yPos > terrainHeight - 10)
+            else if (yPos <= terrainHeight && yPos >= solidGroundHeight + 10)
             {
-                blockValue = 5;
+                blockValue = 5; // Stone
+            }
+            else if (yPos == solidGroundHeight)
+            {
+                blockValue = 3; // grass
             }
             else if (yPos > terrainHeight)
             {
-                return 0;
+                return 0; // Air
             }
             else
             {

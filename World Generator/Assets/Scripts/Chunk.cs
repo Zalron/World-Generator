@@ -19,17 +19,30 @@ namespace WorldGenerator
         public readonly byte[,,] blockMap = new byte[chunkSize, chunkSize, chunkSize];
 
         World world;
-        public Chunk(ChunkCoord _coord, World _world)
+
+        private bool _isActive;
+        public bool IsBlockMapPopulated = false;
+        public Chunk(ChunkCoord _coord, World _world, bool generateOnLoad)
         {
             coord = _coord;
             world = _world;
+            IsActive = true;
+            if (generateOnLoad)
+            {
+                Init();
+            }
+        }
+        public void Init()
+        {
             chunkObject = new GameObject();
             meshFilter = chunkObject.AddComponent<MeshFilter>();
             meshRenderer = chunkObject.AddComponent<MeshRenderer>();
             meshRenderer.material = world.material;
+
             chunkObject.transform.SetParent(world.transform);
             chunkObject.transform.position = new Vector3(coord.x * chunkSize, coord.y * chunkSize, coord.z * chunkSize);
             chunkObject.name = "Chunk " + coord.x + "x, " + coord.z + "z, " + coord.y + "y";
+
             PopulateBlockMap();
             CreateChunkMesh();
             CreateMesh();
@@ -46,12 +59,13 @@ namespace WorldGenerator
                     }
                 }
             }
+            IsBlockMapPopulated = true;
         }
         void AddBlockDataToChunk(Vector3 pos)
         {
             for (int p = 0; p < 6; p++)
             {
-                if (!CheckVoxel(pos + Block.faceChecks[p]))
+                if (!CheckBlock(pos + Block.faceChecks[p]))
                 {
                     byte blockID = blockMap[(int)pos.x, (int)pos.y, (int)pos.x];
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 0]]);
@@ -69,7 +83,7 @@ namespace WorldGenerator
                 }
             }
         }
-        bool IsVoxelInChunk(int x, int y, int z)
+        bool IsBlockInChunk(int x, int y, int z)
         {
             if (x < 0 || x > chunkSize - 1 || y < 0 || y > chunkSize - 1 || z < 0 || z > chunkSize - 1)
             {
@@ -80,21 +94,40 @@ namespace WorldGenerator
                 return true;
             }
         }
-        bool CheckVoxel(Vector3 pos)
+        bool CheckBlock(Vector3 pos)
         {
             int x = Mathf.FloorToInt(pos.x);
             int y = Mathf.FloorToInt(pos.y);
             int z = Mathf.FloorToInt(pos.z);
-            if (!IsVoxelInChunk(x,y,z))
+            if (!IsBlockInChunk(x,y,z))
             {
-                return world.blockType[world.GetBlock(pos + position)].isSolid;
+                return world.CheckForBlockInChunk(pos + position);
             }
             return world.blockType[blockMap[x, y, z]].isSolid;
         }
+        public byte GetBlockFromGlobalVector3(Vector3 pos)
+        {
+            int xCheck = Mathf.FloorToInt(pos.x);
+            int yCheck = Mathf.FloorToInt(pos.y);
+            int zCheck = Mathf.FloorToInt(pos.z);
+
+            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
+            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
+            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
+
+            return blockMap[xCheck, yCheck, zCheck];
+        }
         public bool IsActive
         {
-            get { return chunkObject.activeSelf; }
-            set { chunkObject.SetActive(value); }
+            get { return _isActive; }
+            set
+            {
+                _isActive = value;
+                if (chunkObject != null)
+                {
+                    chunkObject.SetActive(value);
+                }
+            }
         }
         public Vector3 position
         {
@@ -147,11 +180,28 @@ namespace WorldGenerator
         public int x;
         public int y;
         public int z;
+
+        public ChunkCoord()
+        {
+            x = 0;
+            y = 0;
+            z = 0;
+        }
         public ChunkCoord(int _x, int _y, int _z)
         {
             x = _x;
             y = _y;
             z = _z;
+        }
+        public ChunkCoord(Vector3 pos)
+        {
+            int xCheck = Mathf.FloorToInt(pos.x);
+            int yCheck = Mathf.FloorToInt(pos.y);
+            int zCheck = Mathf.FloorToInt(pos.z);
+
+            x = xCheck / Chunk.chunkSize;
+            y = yCheck / Chunk.chunkSize;
+            z = zCheck / Chunk.chunkSize;
         }
         public bool Equals(ChunkCoord other)
         {
