@@ -16,7 +16,7 @@ namespace WorldGenerator
         readonly List<int> triangles = new List<int>();
         readonly List<Vector2> uvs = new List<Vector2>();
 
-        readonly byte[,,] blockMap = new byte[chunkSize, chunkSize, chunkSize];
+        public readonly byte[,,] blockMap = new byte[chunkSize, chunkSize, chunkSize];
 
         World world;
         public Chunk(ChunkCoord _coord, World _world)

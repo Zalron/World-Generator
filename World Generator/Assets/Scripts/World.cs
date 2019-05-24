@@ -11,6 +11,7 @@ namespace WorldGenerator
 
         public Material material;
         public BlockType[] blockType;
+        public Biomes biome;
 
         Chunk[,,] chunks = new Chunk[WorldSizeInChunks, WorldSizeInChunks, WorldSizeInChunks];
 
@@ -18,8 +19,10 @@ namespace WorldGenerator
         ChunkCoord playerChunkCoord;
         ChunkCoord playerLastChunkCoord;
 
+        List<ChunkCoord> chunksToCreate = new List<ChunkCoord>();
+
         public static readonly int ViewDistanceInChunks = 5;
-        public static readonly int WorldSizeInChunks = 16;
+        public static readonly int WorldSizeInChunks = 64;
         public static int WorldSizeInBlocks
         {
             get { return WorldSizeInChunks * Chunk.chunkSize; }
@@ -27,7 +30,7 @@ namespace WorldGenerator
         public void Start()
         {
             Random.InitState(seed);
-            spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, (WorldSizeInChunks * Chunk.chunkSize) / 2f, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
+            spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, 1000, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
             GenerateWorld();
             playerLastChunkCoord = GetChunkCoordFromVector3(Player.position);
         }
@@ -49,6 +52,7 @@ namespace WorldGenerator
         void CheckViewDistance()
         {
             ChunkCoord coord = GetChunkCoordFromVector3(Player.position);
+            playerLastChunkCoord = playerChunkCoord;
 
             List<ChunkCoord> previouslyActiveChunks = new List<ChunkCoord>(activeChunks);
 
@@ -82,16 +86,16 @@ namespace WorldGenerator
             }
             foreach (ChunkCoord c in previouslyActiveChunks)
             {
-                chunks[c.x, c.y, c.z].IsActive = true;
+                chunks[c.x, c.y, c.z].IsActive = false;
             } 
         }
         void GenerateWorld()
         {
-            for (int x = 0; x < WorldSizeInChunks; x++)
+            for (int x = (WorldSizeInChunks/2) - ViewDistanceInChunks; x < (WorldSizeInChunks / 2) + ViewDistanceInChunks; x++)
             {
-                for (int y = 0; y < WorldSizeInChunks; y++)
+                for (int y = (WorldSizeInChunks / 2) - ViewDistanceInChunks; y < (WorldSizeInChunks / 2) + ViewDistanceInChunks; y++)
                 {
-                    for (int z = 0; z <WorldSizeInChunks; z++)
+                    for (int z = (WorldSizeInChunks / 2) - ViewDistanceInChunks; z < (WorldSizeInChunks / 2) + ViewDistanceInChunks; z++)
                     {
                         CreateNewChunk(x, y, z);
                     }
@@ -104,6 +108,22 @@ namespace WorldGenerator
             chunks[x, y, z] = new Chunk(new ChunkCoord(x, y, z), this);
             activeChunks.Add(new ChunkCoord(x, y, z));
         }
+        public bool CheckForBlockInChunk(float _x, float _y, float _z)
+        {
+            int xCheck = Mathf.FloorToInt(_x);
+            int yCheck = Mathf.FloorToInt(_y);
+            int zCheck = Mathf.FloorToInt(_z);
+
+            int xChunk = xCheck / Chunk.chunkSize;
+            int yChunk = yCheck / Chunk.chunkSize;
+            int zChunk = zCheck / Chunk.chunkSize;
+
+            xCheck -= (xChunk * Chunk.chunkSize);
+            yCheck -= (yChunk * Chunk.chunkSize);
+            zCheck -= (zChunk * Chunk.chunkSize);
+
+            return blockType[chunks[xChunk, yChunk, zChunk].blockMap[xCheck, yCheck, zCheck]].isSolid;
+        }
         public byte GetBlock(Vector3 pos)
         {
             // IMMUTABLE PASS
@@ -113,25 +133,47 @@ namespace WorldGenerator
                 return 0;
             }
 
-            if (yPos == 0)
+            if (yPos == 3)
             {
                 return 1;
             }
 
             // BASIC TERRAIN PASS
-            int terrainHeight = Mathf.FloorToInt(WorldSizeInBlocks * Biomes.Get2DSimplex(new Vector2(pos.x, pos.z), 500, 0.25f));
+            int terrainHeight = Mathf.FloorToInt(biome.terrainHeight * Terrian.Get2DSimplex(new Vector2(pos.x, pos.z), 0, biome.terrainScale)) + biome.solidGroundHeight;
+            byte blockValue;
             if (yPos == terrainHeight)
             {
-                return 3;
+                blockValue = 3;
             }
-            else if (yPos>terrainHeight)
+            else if (yPos < terrainHeight && yPos > terrainHeight - 10)
+            {
+                blockValue = 5;
+            }
+            else if (yPos > terrainHeight)
             {
                 return 0;
             }
             else
             {
-                return 2;
+                blockValue = 2;
             }
+
+            // Secomd Terrain PASS
+            if (blockValue == 2 || blockValue == 5 || blockValue == 3)
+            {
+                foreach (Lode lode in biome.lodes)
+                {
+                    if (yPos > lode.minHeight && yPos < lode.maxHeight)
+                    {
+                        if (Terrian.Get3DSimplex(pos, lode.noiseOffset, lode.scale, lode.threshold))
+                        {
+                            blockValue = lode.BlockID;
+                        }
+                    }
+                }
+            }
+            return blockValue;
+
         }
         bool IsChunkInWorld(ChunkCoord coord)
         {

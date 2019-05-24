@@ -4,11 +4,25 @@ using SimplexNoise;
 using UnityEngine;
 namespace WorldGenerator
 {
-    public class Biomes
+    [CreateAssetMenu(fileName = "Biomes", menuName = "ScriptableObject/Biomes", order = 1)]
+    public class Biomes : ScriptableObject
     {
-        public static float Get2DSimplex(Vector2 position, float offset, float scale)
-        {
-            return Noise.Generate((position.x + 0.1f) / Chunk.chunkSize * scale + offset, (position.y + 0.1f) / Chunk.chunkSize * scale + offset);
-        }
+        public string biomeName;
+
+        public int solidGroundHeight;
+        public int terrainHeight;
+        public float terrainScale;
+        public Lode[] lodes;
+    }
+    [System.Serializable]
+    public class Lode
+    {
+        public BlockType blockType;
+        public byte BlockID;
+        public int minHeight;
+        public int maxHeight;
+        public float scale;
+        public float threshold;
+        public float noiseOffset;
     }
 }
