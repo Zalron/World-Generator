@@ -18,11 +18,13 @@ namespace WorldGenerator
         Chunk[,,] chunks = new Chunk[WorldSizeInChunks, WorldSizeInChunks, WorldSizeInChunks];
 
         List<ChunkCoord> activeChunks = new List<ChunkCoord>();
-        ChunkCoord playerChunkCoord;
+        public ChunkCoord playerChunkCoord;
         ChunkCoord playerLastChunkCoord;
 
         List<ChunkCoord> chunksToCreate = new List<ChunkCoord>();
         private bool IsCreatingChunks;
+
+        public GameObject debugScreen;
 
         public static readonly int ViewDistanceInChunks = 5;
         public static readonly int WorldSizeInChunks = 64;
@@ -47,6 +49,10 @@ namespace WorldGenerator
             if (chunksToCreate.Count > 0 && !IsCreatingChunks)
             {
                 StartCoroutine(CreateChunks());
+            }
+            if (Input.GetKeyDown(KeyCode.F3))
+            {
+                debugScreen.SetActive(!debugScreen.activeSelf);
             }
         }
         IEnumerator CreateChunks()
@@ -154,38 +160,37 @@ namespace WorldGenerator
             }
 
             // BASIC TERRAIN PASS
-            int terrainHeight = Mathf.FloorToInt(biome.terrainHeight * Terrian.Get2DSimplex(new Vector2(pos.x, pos.z), 0, biome.terrainScale));
-            int solidGroundHeight = Mathf.FloorToInt(biome.solidGroundHeight * Terrian.Get2DSimplex(new Vector2(pos.x, pos.z), 0, biome.terrainScale));
+            int terrainHeight = Terrian.GenerateHeight(new Vector2(pos.x, pos.z), biome.solidGroundHeight, biome.terrainHeightFromSoild, biome.terrainOffset, biome.terrainSmooth, biome.terrainOctaves, biome.terrainScale);
             byte blockValue;
             if (yPos == terrainHeight)
             {
-                blockValue = 3; //grass
+                blockValue = 3; //Grass
             }
-            else if (yPos <= terrainHeight && yPos >= solidGroundHeight + 10)
+            else if (yPos <= terrainHeight - 4)
             {
-                blockValue = 5; // Stone
-            }
-            else if (yPos == solidGroundHeight)
-            {
-                blockValue = 3; // grass
+                blockValue = 5; // Dirt
             }
             else if (yPos > terrainHeight)
             {
                 return 0; // Air
             }
+            else if (yPos < 100)
+            {
+                return 2;
+            }
             else
             {
-                blockValue = 2;
+                blockValue = 5; // Dirt
             }
 
-            // Secomd Terrain PASS
-            if (blockValue == 2 || blockValue == 5 || blockValue == 3)
+            // SECOND TERRAIN PASS
+            if (blockValue == 5 || blockValue == 3)
             {
                 foreach (Lode lode in biome.lodes)
                 {
-                    if (yPos > lode.minHeight && yPos < lode.maxHeight)
+                    if (yPos >= lode.minHeight && yPos <= lode.maxHeight)
                     {
-                        if (Terrian.Get3DSimplex(pos, lode.noiseOffset, lode.scale, lode.threshold))
+                        if (Terrian.fBM3D(pos.x, pos.y, pos.z, lode.offset, lode.octaves, (int)lode.persistance, lode.scale, lode.threshold))
                         {
                             blockValue = lode.BlockID;
                         }
@@ -197,7 +202,7 @@ namespace WorldGenerator
         }
         bool IsChunkInWorld(ChunkCoord coord)
         {
-            if (coord.x > 0 && coord.x < WorldSizeInChunks - 1 && coord.y > 0 && coord.y < WorldSizeInChunks - 1 && coord.z > 0 && coord.z < WorldSizeInChunks - 1)
+            if (coord.x >= 0 && coord.x < WorldSizeInChunks - 1 && coord.y >= 0 && coord.y < WorldSizeInChunks - 1 && coord.z >= 0 && coord.z < WorldSizeInChunks - 1)
             {
                 return true;
             }

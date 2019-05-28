@@ -55,7 +55,7 @@ namespace WorldGenerator
                 {
                     for (int z = 0; z < chunkSize; z++)
                     {
-                        blockMap[x, y, z] = world.GetBlock(new Vector3(x, y, z) + position);
+                        blockMap[x, y, z] = world.GetBlock(new Vector3(x, y, z) + chunkObject.transform.position);
                     }
                 }
             }

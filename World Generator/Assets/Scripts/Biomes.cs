@@ -10,8 +10,12 @@ namespace WorldGenerator
         public string biomeName;
 
         public int solidGroundHeight;
-        public int terrainHeight;
+        public int terrainHeightFromSoild;
+        public float terrainOffset;
+        public float terrainOctaves;
+        public float terrainSmooth;
         public float terrainScale;
+        public float terrainPersistance;
         public Lode[] lodes;
     }
     [System.Serializable]
@@ -22,7 +26,9 @@ namespace WorldGenerator
         public int minHeight;
         public int maxHeight;
         public float scale;
+        public float octaves;
+        public float persistance;
         public float threshold;
-        public float noiseOffset;
+        public float offset;
     }
 }
