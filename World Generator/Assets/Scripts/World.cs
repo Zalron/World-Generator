@@ -75,6 +75,13 @@ namespace WorldGenerator
             int z = Mathf.FloorToInt(pos.z / Chunk.chunkSize);
             return new ChunkCoord(x,y,z);
         }
+        public Chunk GetChunkFromVector3(Vector3 pos)
+        {
+            int x = Mathf.FloorToInt(pos.x / Chunk.chunkSize);
+            int y = Mathf.FloorToInt(pos.y / Chunk.chunkSize);
+            int z = Mathf.FloorToInt(pos.z / Chunk.chunkSize);
+            return chunks[x, y, z];
+        }
         void CheckViewDistance()
         {
             ChunkCoord coord = GetChunkCoordFromVector3(Player.position);
@@ -153,12 +160,10 @@ namespace WorldGenerator
             {
                 return 0;
             }
-
-            if (yPos == 3)
+            if (yPos <= 3)
             {
                 return 1;
             }
-
             // BASIC TERRAIN PASS
             int terrainHeight = Terrian.GenerateHeight(new Vector2(pos.x, pos.z), biome.solidGroundHeight, biome.terrainHeightFromSoild, biome.terrainOffset, biome.terrainSmooth, biome.terrainOctaves, biome.terrainScale);
             byte blockValue;
@@ -174,9 +179,9 @@ namespace WorldGenerator
             {
                 return 0; // Air
             }
-            else if (yPos < 100)
+            else if (yPos < terrainHeight-WorldSizeInBlocks)
             {
-                return 2;
+                blockValue = 2;
             }
             else
             {
@@ -184,13 +189,13 @@ namespace WorldGenerator
             }
 
             // SECOND TERRAIN PASS
-            if (blockValue == 5 || blockValue == 3)
+            if (blockValue == 2)
             {
                 foreach (Lode lode in biome.lodes)
                 {
                     if (yPos >= lode.minHeight && yPos <= lode.maxHeight)
                     {
-                        if (Terrian.fBM3D(pos.x, pos.y, pos.z, lode.offset, lode.octaves, (int)lode.persistance, lode.scale, lode.threshold))
+                        if (Terrian.FBM3D(pos.x, pos.y, pos.z, lode.offset, lode.octaves, (int)lode.persistance, lode.scale, lode.threshold))
                         {
                             blockValue = lode.BlockID;
                         }

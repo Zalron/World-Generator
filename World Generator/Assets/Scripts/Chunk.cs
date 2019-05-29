@@ -41,11 +41,11 @@ namespace WorldGenerator
 
             chunkObject.transform.SetParent(world.transform);
             chunkObject.transform.position = new Vector3(coord.x * chunkSize, coord.y * chunkSize, coord.z * chunkSize);
-            chunkObject.name = "Chunk " + coord.x + "x, " + coord.z + "z, " + coord.y + "y";
+            chunkObject.name = "Chunk " + coord.x + "x, " + coord.y + "y, " + coord.z + "z";
 
             PopulateBlockMap();
-            CreateChunkMesh();
-            CreateMesh();
+            UpdateChunk();
+            
         }
         void PopulateBlockMap()
         {
@@ -61,13 +61,13 @@ namespace WorldGenerator
             }
             IsBlockMapPopulated = true;
         }
-        void AddBlockDataToChunk(Vector3 pos)
+        void UpdateMeshData(Vector3 pos)
         {
             for (int p = 0; p < 6; p++)
             {
                 if (!CheckBlock(pos + Block.faceChecks[p]))
                 {
-                    byte blockID = blockMap[(int)pos.x, (int)pos.y, (int)pos.x];
+                    byte blockID = blockMap[(int)pos.x, (int)pos.y, (int)pos.z];
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 0]]);
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 1]]);
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 2]]);
@@ -92,6 +92,34 @@ namespace WorldGenerator
             else
             {
                 return true;
+            }
+        }
+        public void EditBlock(Vector3 pos, byte newID) 
+        {
+            int xCheck = Mathf.FloorToInt(pos.x);
+            int yCheck = Mathf.FloorToInt(pos.y);
+            int zCheck = Mathf.FloorToInt(pos.z);
+
+            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
+            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
+            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
+
+            blockMap[xCheck, yCheck, zCheck] = newID;
+
+            UpdateSurroundingBlocks(xCheck,yCheck,zCheck);
+
+            UpdateChunk();
+        }
+        void UpdateSurroundingBlocks(int x, int y, int z)
+        {
+            Vector3 thisBlock = new Vector3(x,y,z);
+            for (int p = 0; p < 6; p++)
+            {
+                Vector3 currentBlock = thisBlock + Block.faceChecks[p];
+                if (!IsBlockInChunk((int)currentBlock.x, (int)currentBlock.y, (int)currentBlock.z))
+                {
+                    world.GetChunkFromVector3(currentBlock + position).UpdateChunk();
+                }
             }
         }
         bool CheckBlock(Vector3 pos)
@@ -133,8 +161,16 @@ namespace WorldGenerator
         {
             get { return chunkObject.transform.position; }
         }
-        void CreateChunkMesh()
+        void ClearMeshData()
         {
+            vertexIndex = 0;
+            vertices.Clear();
+            triangles.Clear();
+            uvs.Clear();
+        }
+        void UpdateChunk()
+        {
+            ClearMeshData();
             for (int x = 0; x < chunkSize; x++)
             {
                 for (int y = 0; y < chunkSize; y++)
@@ -143,11 +179,12 @@ namespace WorldGenerator
                     {
                         if (world.blockType[blockMap[x,y,z]].isSolid)
                         {
-                            AddBlockDataToChunk(new Vector3(x, y, z));
+                            UpdateMeshData(new Vector3(x, y, z));
                         }
                     }
                 }
             }
+            CreateMesh();
         }
         void CreateMesh()
         {

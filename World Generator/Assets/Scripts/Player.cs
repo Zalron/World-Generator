@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 namespace WorldGenerator
 {
     public class Player : MonoBehaviour
@@ -26,15 +27,23 @@ namespace WorldGenerator
         private float verticalMomemtum = 0;
         private bool jumpRequest;
 
+        public Transform PlaceHighlightBlock;
+        public Transform DestroyHighlightBlock;
+        public float checkIncrement = 0.1f;
+        public float reach = 8f;
+
+        public TextMeshProUGUI selectedBlockText;
+        public byte selectedBlockIndex = 1;
         private void Start()
         {
             cam = GameObject.Find("Main Camera").transform;
             world = GameObject.Find("World").GetComponent<World>();
-        }
 
-        public void Update()
+            Cursor.lockState = CursorLockMode.Locked;
+            selectedBlockText.text = world.blockType[selectedBlockIndex].blockName + " block selected";
+        }
+        public void FixedUpdate()
         {
-            GetPlayerInputs();
             CalculateVelocity();
 
             if (jumpRequest)
@@ -45,6 +54,11 @@ namespace WorldGenerator
             transform.Rotate(Vector3.up * mouseHorizontal);
             cam.Rotate(Vector3.right * -mouseVertical);
             transform.Translate(velocity, Space.World);
+        }
+        public void Update()
+        {
+            GetPlayerInputs();
+            PlaceCursorBlocks();
         }
         void Jump()
         {
@@ -105,6 +119,61 @@ namespace WorldGenerator
             {
                 jumpRequest = true;
             }
+            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            if (scroll != 0)
+            {
+                if (scroll > 0)
+                {
+                    selectedBlockIndex++;
+                }
+                else
+                {
+                    selectedBlockIndex--;
+                }
+                if (selectedBlockIndex > (byte)(world.blockType.Length-1))
+                {
+                    selectedBlockIndex = 1;
+                }
+                if (selectedBlockIndex < 1)
+                {
+                    selectedBlockIndex = (byte)(world.blockType.Length - 1);
+                }
+                selectedBlockText.text = world.blockType[selectedBlockIndex].blockName+" block selected";
+            }
+            if (DestroyHighlightBlock.gameObject.activeSelf)
+            {
+                // Destroying block 
+                if (Input.GetMouseButtonDown(0))
+                {
+                    world.GetChunkFromVector3(DestroyHighlightBlock.position).EditBlock(DestroyHighlightBlock.position, 0);
+                }
+                // Place block 
+                if (Input.GetMouseButtonDown(1))
+                {
+                    world.GetChunkFromVector3(PlaceHighlightBlock.position).EditBlock(PlaceHighlightBlock.position, selectedBlockIndex);
+                }
+            }
+        }
+        private void PlaceCursorBlocks()
+        {
+            float step = checkIncrement;
+            Vector3 lastPos = new Vector3();
+            while (step < reach)
+            {
+                Vector3 pos = cam.position + (cam.forward * step);
+                if (world.CheckForBlockInChunk(pos))
+                {
+                    DestroyHighlightBlock.position = new Vector3(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
+                    PlaceHighlightBlock.position = lastPos;
+                    DestroyHighlightBlock.gameObject.SetActive(true);
+                    PlaceHighlightBlock.gameObject.SetActive(true);
+                    return;
+                }
+                lastPos = new Vector3(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
+                step += checkIncrement;
+            }
+            PlaceHighlightBlock.gameObject.SetActive(false);
+            DestroyHighlightBlock.gameObject.SetActive(false);
         }
         private float checkDownSpeed(float downSpeed)
         {

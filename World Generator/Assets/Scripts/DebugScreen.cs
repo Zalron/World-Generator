@@ -26,7 +26,7 @@ namespace WorldGenerator
             debugText += "\n\n";
             debugText += "XYZ: " + Mathf.FloorToInt(world.Player.transform.position.x) + " / " + Mathf.FloorToInt(world.Player.transform.position.y) + " / " + Mathf.FloorToInt(world.Player.transform.position.z);
             debugText += "\n";
-            debugText += "Chunk: " + world.playerChunkCoord.x + " / " + world.playerChunkCoord.y + " / " + world.playerChunkCoord.z;
+            //debugText += "Chunk: " + world.playerChunkCoord.x + " / " + world.playerChunkCoord.y + " / " + world.playerChunkCoord.z;
 
             text.text = debugText;
             if (timer > 1f)

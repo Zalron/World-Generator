@@ -16,10 +16,10 @@ MonoBehaviour:
   solidGroundHeight: 500
   terrainHeightFromSoild: 510
   terrainOffset: 1
-  terrainOctaves: 2
+  terrainOctaves: 3
   terrainSmooth: 0.01
-  terrainScale: 5
-  terrainPersistance: 0.1
+  terrainScale: 2
+  terrainPersistance: 0.5
   lodes:
   - blockType: {fileID: 11400000, guid: f2f82397394f0044190c155e47611dd9, type: 2}
     BlockID: 5
@@ -48,12 +48,3 @@ MonoBehaviour:
     persistance: 0.3
     threshold: 0.5
     offset: 4
-  - blockType: {fileID: 11400000, guid: 028be2769f2288f4aa8c64d52a3d3fa2, type: 2}
-    BlockID: 2
-    minHeight: 2
-    maxHeight: 450
-    scale: 5
-    octaves: 1
-    persistance: 0.3
-    threshold: 0.5
-    offset: 1
