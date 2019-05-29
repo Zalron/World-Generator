@@ -32,7 +32,6 @@ namespace WorldGenerator
         public float checkIncrement = 0.1f;
         public float reach = 8f;
 
-        public TextMeshProUGUI selectedBlockText;
         public byte selectedBlockIndex = 1;
         private void Start()
         {
@@ -40,7 +39,6 @@ namespace WorldGenerator
             world = GameObject.Find("World").GetComponent<World>();
 
             Cursor.lockState = CursorLockMode.Locked;
-            selectedBlockText.text = world.blockType[selectedBlockIndex].blockName + " block selected";
         }
         public void FixedUpdate()
         {
@@ -119,27 +117,6 @@ namespace WorldGenerator
             {
                 jumpRequest = true;
             }
-            float scroll = Input.GetAxis("Mouse ScrollWheel");
-            if (scroll != 0)
-            {
-                if (scroll > 0)
-                {
-                    selectedBlockIndex++;
-                }
-                else
-                {
-                    selectedBlockIndex--;
-                }
-                if (selectedBlockIndex > (byte)(world.blockType.Length-1))
-                {
-                    selectedBlockIndex = 1;
-                }
-                if (selectedBlockIndex < 1)
-                {
-                    selectedBlockIndex = (byte)(world.blockType.Length - 1);
-                }
-                selectedBlockText.text = world.blockType[selectedBlockIndex].blockName+" block selected";
-            }
             if (DestroyHighlightBlock.gameObject.activeSelf)
             {
                 // Destroying block 
@@ -161,7 +138,7 @@ namespace WorldGenerator
             while (step < reach)
             {
                 Vector3 pos = cam.position + (cam.forward * step);
-                if (world.CheckForBlockInChunk(pos))
+                if (world.CheckForSolidBlockInChunk(pos))
                 {
                     DestroyHighlightBlock.position = new Vector3(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y), Mathf.FloorToInt(pos.z));
                     PlaceHighlightBlock.position = lastPos;
@@ -177,10 +154,10 @@ namespace WorldGenerator
         }
         private float checkDownSpeed(float downSpeed)
         {
-            if (world.CheckForBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + downSpeed, transform.position.z - playerWidth)) ||
-                world.CheckForBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + downSpeed, transform.position.z - playerWidth)) ||
-                world.CheckForBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + downSpeed, transform.position.z + playerWidth)) ||
-                world.CheckForBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + downSpeed, transform.position.z + playerWidth)))
+            if (world.CheckForSolidBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + downSpeed, transform.position.z - playerWidth)) ||
+                world.CheckForSolidBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + downSpeed, transform.position.z - playerWidth)) ||
+                world.CheckForSolidBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + downSpeed, transform.position.z + playerWidth)) ||
+                world.CheckForSolidBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + downSpeed, transform.position.z + playerWidth)))
             {
                 IsGrounded = true;
                 return 0;
@@ -193,10 +170,10 @@ namespace WorldGenerator
         }
         private float checkUpSpeed(float upSpeed)
         {
-            if (world.CheckForBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + 2f + upSpeed, transform.position.z - playerWidth)) ||
-                world.CheckForBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + 2f + upSpeed, transform.position.z - playerWidth)) ||
-                world.CheckForBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + 2f + upSpeed, transform.position.z + playerWidth)) ||
-                world.CheckForBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + 2f + upSpeed, transform.position.z + playerWidth)))
+            if (world.CheckForSolidBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + 2f + upSpeed, transform.position.z - playerWidth)) ||
+                world.CheckForSolidBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + 2f + upSpeed, transform.position.z - playerWidth)) ||
+                world.CheckForSolidBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + 2f + upSpeed, transform.position.z + playerWidth)) ||
+                world.CheckForSolidBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + 2f + upSpeed, transform.position.z + playerWidth)))
             {
                 return 0;
             }
@@ -209,8 +186,8 @@ namespace WorldGenerator
         {
             get
             {
-                if (world.CheckForBlockInChunk(new Vector3(transform.position.x, transform.position.y, transform.position.z + playerWidth)) ||
-                    world.CheckForBlockInChunk(new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z + playerWidth)))
+                if (world.CheckForSolidBlockInChunk(new Vector3(transform.position.x, transform.position.y, transform.position.z + playerWidth)) ||
+                    world.CheckForSolidBlockInChunk(new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z + playerWidth)))
                 {
                     return true;
                 }
@@ -224,8 +201,8 @@ namespace WorldGenerator
         {
             get
             {
-                if (world.CheckForBlockInChunk(new Vector3(transform.position.x, transform.position.y, transform.position.z - playerWidth)) ||
-                    world.CheckForBlockInChunk(new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z - playerWidth)))
+                if (world.CheckForSolidBlockInChunk(new Vector3(transform.position.x, transform.position.y, transform.position.z - playerWidth)) ||
+                    world.CheckForSolidBlockInChunk(new Vector3(transform.position.x, transform.position.y + 1f, transform.position.z - playerWidth)))
                 {
                     return true;
                 }
@@ -239,8 +216,8 @@ namespace WorldGenerator
         {
             get
             {
-                if (world.CheckForBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y, transform.position.z)) ||
-                    world.CheckForBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + 1f, transform.position.z)))
+                if (world.CheckForSolidBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y, transform.position.z)) ||
+                    world.CheckForSolidBlockInChunk(new Vector3(transform.position.x - playerWidth, transform.position.y + 1f, transform.position.z)))
                 {
                     return true;
                 }
@@ -254,8 +231,8 @@ namespace WorldGenerator
         {
             get
             {
-                if (world.CheckForBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y, transform.position.z)) ||
-                    world.CheckForBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + 1f, transform.position.z)))
+                if (world.CheckForSolidBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y, transform.position.z)) ||
+                    world.CheckForSolidBlockInChunk(new Vector3(transform.position.x + playerWidth, transform.position.y + 1f, transform.position.z)))
                 {
                     return true;
                 }

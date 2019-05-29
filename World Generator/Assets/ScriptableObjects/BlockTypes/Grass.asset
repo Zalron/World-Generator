@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   blockName: Grass
   isSolid: 1
-  backFaceTexture: 3
-  frontFaceTexture: 3
-  topFaceTexture: 146
-  bottomFaceTexture: 2
-  leftFaceTexture: 3
-  rightFaceTexture: 3
+  IsTransparent: 0
+  icon: {fileID: -6448832585698385253, guid: 304de88c450e5e44196e8c074b37ba39, type: 3}
+  backFaceTexture: 2
+  frontFaceTexture: 2
+  topFaceTexture: 7
+  bottomFaceTexture: 1
+  leftFaceTexture: 2
+  rightFaceTexture: 2

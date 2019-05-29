@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 namespace WorldGenerator
 {
@@ -14,14 +15,21 @@ namespace WorldGenerator
         int vertexIndex = 0;
         readonly List<Vector3> vertices = new List<Vector3>();
         readonly List<int> triangles = new List<int>();
+        readonly List<int> transparentTriangles = new List<int>();
+        readonly Material[] materials = new Material[2];
         readonly List<Vector2> uvs = new List<Vector2>();
 
+        public Vector3 position;
+
         public readonly byte[,,] blockMap = new byte[chunkSize, chunkSize, chunkSize];
+
+        public Queue<BlockMod> modifications = new Queue<BlockMod>();
 
         World world;
 
         private bool _isActive;
-        public bool IsBlockMapPopulated = false;
+        private bool IsBlockMapPopulated = false;
+        public bool threadLocked = false;
         public Chunk(ChunkCoord _coord, World _world, bool generateOnLoad)
         {
             coord = _coord;
@@ -37,14 +45,17 @@ namespace WorldGenerator
             chunkObject = new GameObject();
             meshFilter = chunkObject.AddComponent<MeshFilter>();
             meshRenderer = chunkObject.AddComponent<MeshRenderer>();
-            meshRenderer.material = world.material;
+            materials[0] = world.material;
+            materials[1] = world.transparentMaterial;
+            meshRenderer.materials = materials;
 
             chunkObject.transform.SetParent(world.transform);
             chunkObject.transform.position = new Vector3(coord.x * chunkSize, coord.y * chunkSize, coord.z * chunkSize);
             chunkObject.name = "Chunk " + coord.x + "x, " + coord.y + "y, " + coord.z + "z";
+            position = chunkObject.transform.position;
 
-            PopulateBlockMap();
-            UpdateChunk();
+            Thread PopulateBlockMapThread = new Thread(new ThreadStart(PopulateBlockMap));
+            PopulateBlockMapThread.Start();
             
         }
         void PopulateBlockMap()
@@ -55,30 +66,44 @@ namespace WorldGenerator
                 {
                     for (int z = 0; z < chunkSize; z++)
                     {
-                        blockMap[x, y, z] = world.GetBlock(new Vector3(x, y, z) + chunkObject.transform.position);
+                        blockMap[x, y, z] = world.GetBlock(new Vector3(x, y, z) + position);
                     }
                 }
             }
+            _updateChunk();
             IsBlockMapPopulated = true;
         }
         void UpdateMeshData(Vector3 pos)
         {
+            byte blockID = blockMap[(int)pos.x, (int)pos.y, (int)pos.z];
+            bool isTransparent = world.blockType[blockID].IsTransparent;
             for (int p = 0; p < 6; p++)
             {
-                if (!CheckBlock(pos + Block.faceChecks[p]))
+                if (CheckBlock(pos + Block.faceChecks[p]))
                 {
-                    byte blockID = blockMap[(int)pos.x, (int)pos.y, (int)pos.z];
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 0]]);
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 1]]);
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 2]]);
                     vertices.Add(pos + Block.Verts[Block.Tris[p, 3]]);
                     AddTexture(world.blockType[blockID].GetTextureID(p));
-                    triangles.Add(vertexIndex);
-                    triangles.Add(vertexIndex + 1);
-                    triangles.Add(vertexIndex + 2);
-                    triangles.Add(vertexIndex + 2);
-                    triangles.Add(vertexIndex + 1);
-                    triangles.Add(vertexIndex + 3);
+                    if (!isTransparent)
+                    {
+                        triangles.Add(vertexIndex);
+                        triangles.Add(vertexIndex + 1);
+                        triangles.Add(vertexIndex + 2);
+                        triangles.Add(vertexIndex + 2);
+                        triangles.Add(vertexIndex + 1);
+                        triangles.Add(vertexIndex + 3);
+                    }
+                    else
+                    {
+                        transparentTriangles.Add(vertexIndex);
+                        transparentTriangles.Add(vertexIndex + 1);
+                        transparentTriangles.Add(vertexIndex + 2);
+                        transparentTriangles.Add(vertexIndex + 2);
+                        transparentTriangles.Add(vertexIndex + 1);
+                        transparentTriangles.Add(vertexIndex + 3);
+                    }
                     vertexIndex += 4;
                 }
             }
@@ -93,6 +118,19 @@ namespace WorldGenerator
             {
                 return true;
             }
+        }
+        public byte GetBlockID(Vector3 pos)
+        {
+            byte blockID = 0;
+            int xCheck = Mathf.FloorToInt(pos.x);
+            int yCheck = Mathf.FloorToInt(pos.y);
+            int zCheck = Mathf.FloorToInt(pos.z);
+
+            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
+            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
+            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
+            blockMap[xCheck, yCheck, zCheck] = blockID;
+            return blockID;
         }
         public void EditBlock(Vector3 pos, byte newID) 
         {
@@ -129,9 +167,9 @@ namespace WorldGenerator
             int z = Mathf.FloorToInt(pos.z);
             if (!IsBlockInChunk(x,y,z))
             {
-                return world.CheckForBlockInChunk(pos + position);
+                return world.CheckForTransparentBlockInChunk(pos + position);
             }
-            return world.blockType[blockMap[x, y, z]].isSolid;
+            return world.blockType[blockMap[x, y, z]].IsTransparent;
         }
         public byte GetBlockFromGlobalVector3(Vector3 pos)
         {
@@ -139,9 +177,9 @@ namespace WorldGenerator
             int yCheck = Mathf.FloorToInt(pos.y);
             int zCheck = Mathf.FloorToInt(pos.z);
 
-            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
-            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
-            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
+            xCheck -= Mathf.FloorToInt(position.x);
+            yCheck -= Mathf.FloorToInt(position.y);
+            zCheck -= Mathf.FloorToInt(position.z);
 
             return blockMap[xCheck, yCheck, zCheck];
         }
@@ -157,19 +195,43 @@ namespace WorldGenerator
                 }
             }
         }
-        public Vector3 position
+       
+        public bool isEditable
         {
-            get { return chunkObject.transform.position; }
+            get
+            {
+                if (!IsBlockMapPopulated || threadLocked)
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
         }
         void ClearMeshData()
         {
             vertexIndex = 0;
             vertices.Clear();
             triangles.Clear();
+            transparentTriangles.Clear();
             uvs.Clear();
         }
-        void UpdateChunk()
+        public void UpdateChunk()
         {
+            Thread ChunkThread = new Thread(new ThreadStart(_updateChunk));
+            ChunkThread.Start();
+        }
+        private void _updateChunk()
+        {
+            threadLocked = true;
+            while (modifications.Count > 0)
+            {
+                BlockMod m = modifications.Dequeue();
+                Vector3 pos = m.position -= position;
+                blockMap[(int)pos.x, (int)pos.y, (int)pos.z] = m.id;
+            }
             ClearMeshData();
             for (int x = 0; x < chunkSize; x++)
             {
@@ -184,14 +246,21 @@ namespace WorldGenerator
                     }
                 }
             }
-            CreateMesh();
+            lock (world.chunksToDraw)
+            {
+                world.chunksToDraw.Enqueue(this);
+            }
+
+            threadLocked = false;
         }
-        void CreateMesh()
+        public void CreateMesh()
         {
             Mesh mesh = new Mesh();
             {
                 mesh.vertices = vertices.ToArray();
-                mesh.triangles = triangles.ToArray();
+                mesh.subMeshCount = 2;
+                mesh.SetTriangles(triangles.ToArray(), 0);
+                mesh.SetTriangles(transparentTriangles.ToArray(), 1);
                 mesh.uv = uvs.ToArray();
                 mesh.RecalculateNormals();
                 meshFilter.sharedMesh = mesh;

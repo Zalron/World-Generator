@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27925054e083c484f84bc09c330acd6d, type: 3}
+  m_Name: Log
+  m_EditorClassIdentifier: 
+  blockName: Log
+  isSolid: 1
+  IsTransparent: 0
+  icon: {fileID: -6222168496717222301, guid: 304de88c450e5e44196e8c074b37ba39, type: 3}
+  backFaceTexture: 5
+  frontFaceTexture: 5
+  topFaceTexture: 6
+  bottomFaceTexture: 6
+  leftFaceTexture: 5
+  rightFaceTexture: 5

@@ -8,6 +8,8 @@ namespace WorldGenerator
     {
         public string blockName;
         public bool isSolid;
+        public bool IsTransparent;
+        public Sprite icon;
 
         [Header("Texture Values")]
         public int backFaceTexture;

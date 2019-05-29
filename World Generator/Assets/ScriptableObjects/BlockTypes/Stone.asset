@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   blockName: Stone
   isSolid: 1
+  icon: {fileID: 317711084924465178, guid: 304de88c450e5e44196e8c074b37ba39, type: 3}
   backFaceTexture: 0
   frontFaceTexture: 0
   topFaceTexture: 0

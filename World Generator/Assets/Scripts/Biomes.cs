@@ -8,14 +8,26 @@ namespace WorldGenerator
     public class Biomes : ScriptableObject
     {
         public string biomeName;
-
+        [Header("Terrian Height")]
         public int solidGroundHeight;
         public int terrainHeightFromSoild;
+        [Header("Terrian Settings")]
         public float terrainOffset;
         public float terrainOctaves;
         public float terrainSmooth;
         public float terrainScale;
         public float terrainPersistance;
+        [Header("Trees")]
+        public float treeZoneScale = 1.3f;
+        [Range(0.1f,1f)]
+        public float treeZoneThreshold = 0.6f;
+        public float treePlacementScale = 15f;
+        [Range(0.1f, 1f)]
+        public float treeZonePlacementThreshold = 0.6f;
+
+        public int maxTreeHeight = 12;
+        public int minTreeHeight = 4;
+        [Header("Blocks")]
         public Lode[] lodes;
     }
     [System.Serializable]

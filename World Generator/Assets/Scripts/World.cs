@@ -2,16 +2,19 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Jobs;
+using UnityEngine.UI;
 using Unity.Jobs;
 namespace WorldGenerator
 {
     public class World : MonoBehaviour
     {
+        public Sprite icon;
         public int seed;
         public Transform Player;
         public Vector3 spawnPosition;
 
         public Material material;
+        public Material transparentMaterial;
         public BlockType[] blockType;
         public Biomes biome;
 
@@ -22,7 +25,13 @@ namespace WorldGenerator
         ChunkCoord playerLastChunkCoord;
 
         List<ChunkCoord> chunksToCreate = new List<ChunkCoord>();
+        List<Chunk> chunksToUpdate = new List<Chunk>();
+        public Queue<Chunk> chunksToDraw = new Queue<Chunk>();
         private bool IsCreatingChunks;
+
+        bool applyingModifications = false;
+
+        Queue<Queue<BlockMod>> modifications = new Queue<Queue<BlockMod>>();
 
         public GameObject debugScreen;
 
@@ -34,6 +43,7 @@ namespace WorldGenerator
         }
         public void Start()
         {
+            seed = Random.Range(1, 9999999);
             Random.InitState(seed);
             spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, biome.solidGroundHeight + 20, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
             GenerateWorld();
@@ -46,27 +56,62 @@ namespace WorldGenerator
             {
                 CheckViewDistance();
             }
-            if (chunksToCreate.Count > 0 && !IsCreatingChunks)
+            if (!applyingModifications)
             {
-                StartCoroutine(CreateChunks());
+                ApplyModifications();
+            }
+            if (chunksToCreate.Count > 0)
+            {
+                CreateChunk();
+            }
+            if (chunksToUpdate.Count > 0)
+            {
+                UpdateChunks();
+            }
+            if (chunksToDraw.Count > 0)
+            {
+                lock (chunksToDraw)
+                {
+                    if (chunksToDraw.Peek().isEditable)
+                    {
+                        chunksToDraw.Dequeue().CreateMesh();
+                    }
+                }
             }
             if (Input.GetKeyDown(KeyCode.F3))
             {
                 debugScreen.SetActive(!debugScreen.activeSelf);
             }
         }
-        IEnumerator CreateChunks()
+        void CreateChunk()
         {
-            IsCreatingChunks = true;
 
-            while (chunksToCreate.Count > 0)
+            ChunkCoord c = chunksToCreate[0];
+            chunksToCreate.RemoveAt(0);
+            activeChunks.Add(c);
+            chunks[c.x, c.y, c.z].Init();
+
+        }
+        void UpdateChunks()
+        {
+
+            bool updated = false;
+            int index = 0;
+
+            while (!updated && index < chunksToUpdate.Count - 1)
             {
-                chunks[chunksToCreate[0].x, chunksToCreate[0].y, chunksToCreate[0].z].Init();
-                chunksToCreate.RemoveAt(0);
-                yield return null;
-            }
 
-            IsCreatingChunks = false;
+                if (chunksToUpdate[index].isEditable)
+                {
+                    chunksToUpdate[index].UpdateChunk();
+                    chunksToUpdate.RemoveAt(index);
+                    updated = true;
+                }
+                else
+                {
+                    index++;
+                }
+            }
         }
         ChunkCoord GetChunkCoordFromVector3(Vector3 pos)
         {
@@ -138,7 +183,32 @@ namespace WorldGenerator
                 }
             }
         }
-        public bool CheckForBlockInChunk(Vector3 pos)
+        void ApplyModifications()
+        {
+            applyingModifications = true;
+            while (modifications.Count > 0)
+            {
+                Queue<BlockMod> queue = modifications.Dequeue();
+                while (queue.Count > 0)
+                {
+                    BlockMod v = queue.Dequeue();
+                    ChunkCoord c = GetChunkCoordFromVector3(v.position);
+                    if (chunks[c.x, c.y, c.z] == null)
+                    {
+                        chunks[c.x, c.y, c.z] = new Chunk(c, this, true);
+                        activeChunks.Add(c);
+                    }
+                    chunks[c.x, c.y, c.z].modifications.Enqueue(v);
+                    if (!chunksToUpdate.Contains(chunks[c.x, c.y, c.z]))
+                    {
+                        chunksToUpdate.Add(chunks[c.x, c.y, c.z]);
+                    }
+                }
+
+            }
+            applyingModifications = false;
+        }
+        public bool CheckForSolidBlockInChunk(Vector3 pos)
         {
             ChunkCoord thisChunk = new ChunkCoord(pos);
 
@@ -146,11 +216,25 @@ namespace WorldGenerator
             {
                 return false;
             }
-            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].IsBlockMapPopulated)
+            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].isEditable)
             {
                 return blockType[chunks[thisChunk.x, thisChunk.y, thisChunk.z].GetBlockFromGlobalVector3(pos)].isSolid;
             }
             return blockType[GetBlock(pos)].isSolid;
+        }
+        public bool CheckForTransparentBlockInChunk(Vector3 pos)
+        {
+            ChunkCoord thisChunk = new ChunkCoord(pos);
+
+            if (!IsBlockInWorld(pos))
+            {
+                return false;
+            }
+            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].isEditable)
+            {
+                return blockType[chunks[thisChunk.x, thisChunk.y, thisChunk.z].GetBlockFromGlobalVector3(pos)].IsTransparent;
+            }
+            return blockType[GetBlock(pos)].IsTransparent;
         }
         public byte GetBlock(Vector3 pos)
         {
@@ -171,7 +255,7 @@ namespace WorldGenerator
             {
                 blockValue = 3; //Grass
             }
-            else if (yPos <= terrainHeight - 4)
+            else if (yPos <= terrainHeight && yPos > terrainHeight - 4)
             {
                 blockValue = 5; // Dirt
             }
@@ -179,16 +263,12 @@ namespace WorldGenerator
             {
                 return 0; // Air
             }
-            else if (yPos < terrainHeight-WorldSizeInBlocks)
-            {
-                blockValue = 2;
-            }
             else
             {
-                blockValue = 5; // Dirt
+                blockValue = 2; //Stone
             }
 
-            // SECOND TERRAIN PASS
+            // ORE TERRAIN PASS
             if (blockValue == 2)
             {
                 foreach (Lode lode in biome.lodes)
@@ -202,12 +282,24 @@ namespace WorldGenerator
                     }
                 }
             }
-            return blockValue;
+            
 
+            // TREE TERRAIN PASS
+            if (yPos == terrainHeight)
+            {
+                if (Terrian.TreeGeneration(new Vector2(pos.x,pos.z), 0, biome.treeZoneScale) > biome.treeZoneThreshold) 
+                {
+                    if (Terrian.TreeGeneration(new Vector2(pos.x, pos.z), 0, biome.treePlacementScale) > biome.treeZonePlacementThreshold)
+                    {
+                        modifications.Enqueue(Structure.MakeTree(pos, biome.minTreeHeight, biome.maxTreeHeight));
+                    }
+                }
+            }
+            return blockValue;
         }
         bool IsChunkInWorld(ChunkCoord coord)
         {
-            if (coord.x >= 0 && coord.x < WorldSizeInChunks - 1 && coord.y >= 0 && coord.y < WorldSizeInChunks - 1 && coord.z >= 0 && coord.z < WorldSizeInChunks - 1)
+            if (coord.x > 0 && coord.x < WorldSizeInChunks - 1 && coord.y > 0 && coord.y < WorldSizeInChunks - 1 && coord.z > 0 && coord.z < WorldSizeInChunks - 1)
             {
                 return true;
             }
@@ -227,5 +319,21 @@ namespace WorldGenerator
                 return false;
             }
         }
+    }
+    public class BlockMod
+    {
+        public Vector3 position;
+        public byte id;
+        public BlockMod()
+        {
+            position = new Vector3();
+            id = 0;
+        }
+        public BlockMod(Vector3 _position, byte _id)
+        {
+            position = _position;
+            id = _id;
+        }
+
     }
 }

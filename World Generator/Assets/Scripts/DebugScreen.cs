@@ -6,8 +6,10 @@ namespace WorldGenerator
 {
     public class DebugScreen : MonoBehaviour
     {
+        public Player player;
         public World world;
         public TextMeshProUGUI text;
+
 
         float frameRate;
         float timer;
@@ -20,13 +22,18 @@ namespace WorldGenerator
         // Update is called once per frame
         void Update()
         {
+            int DebugPlayerChunkCoordx = world.playerChunkCoord.x;
+            int DebugPlayerChunkCoordy = world.playerChunkCoord.y;
+            int DebugPlayerChunkCoordz = world.playerChunkCoord.z;
             string debugText = "World Generator";
             debugText += "\n";
             debugText += frameRate + " FPS";
             debugText += "\n\n";
             debugText += "XYZ: " + Mathf.FloorToInt(world.Player.transform.position.x) + " / " + Mathf.FloorToInt(world.Player.transform.position.y) + " / " + Mathf.FloorToInt(world.Player.transform.position.z);
             debugText += "\n";
-            //debugText += "Chunk: " + world.playerChunkCoord.x + " / " + world.playerChunkCoord.y + " / " + world.playerChunkCoord.z;
+            debugText += "Chunk: " + DebugPlayerChunkCoordx + " / " + DebugPlayerChunkCoordy + " / " + DebugPlayerChunkCoordz;
+            debugText += "\n";
+            //debugText += "Block Selected" + player.;
 
             text.text = debugText;
             if (timer > 1f)
