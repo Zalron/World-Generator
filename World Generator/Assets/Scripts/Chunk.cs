@@ -13,15 +13,15 @@ namespace WorldGenerator
 
         public static int chunkSize = 16;
         int vertexIndex = 0;
-        readonly List<Vector3> vertices = new List<Vector3>();
-        readonly List<int> triangles = new List<int>();
-        readonly List<int> transparentTriangles = new List<int>();
-        readonly Material[] materials = new Material[2];
-        readonly List<Vector2> uvs = new List<Vector2>();
+        List<Vector3> vertices = new List<Vector3>();
+        List<int> triangles = new List<int>();
+        List<int> transparentTriangles = new List<int>();
+        Material[] materials = new Material[2];
+        List<Vector2> uvs = new List<Vector2>();
 
         public Vector3 position;
 
-        public readonly byte[,,] blockMap = new byte[chunkSize, chunkSize, chunkSize];
+        public byte[,,] blockMap = new byte[chunkSize, chunkSize, chunkSize];
 
         public Queue<BlockMod> modifications = new Queue<BlockMod>();
 
@@ -73,6 +73,150 @@ namespace WorldGenerator
             _updateChunk();
             IsBlockMapPopulated = true;
         }
+        public void UpdateChunk()
+        {
+            Thread ChunkThread = new Thread(new ThreadStart(_updateChunk));
+            ChunkThread.Start();
+        }
+        private void _updateChunk()
+        {
+            threadLocked = true;
+            while (modifications.Count > 0)
+            {
+                BlockMod m = modifications.Dequeue();
+                Vector3 pos = m.position -= position;
+                blockMap[(int)pos.x, (int)pos.y, (int)pos.z] = m.id;
+            }
+            ClearMeshData();
+            for (int x = 0; x < chunkSize; x++)
+            {
+                for (int y = 0; y < chunkSize; y++)
+                {
+                    for (int z = 0; z < chunkSize; z++)
+                    {
+                        if (world.blockType[blockMap[x, y, z]].isSolid)
+                        {
+                            UpdateMeshData(new Vector3(x, y, z));
+                        }
+                    }
+                }
+            }
+            lock (world.chunksToDraw)
+            {
+                world.chunksToDraw.Enqueue(this);
+            }
+
+            threadLocked = false;
+        }
+        void ClearMeshData()
+        {
+            vertexIndex = 0;
+            vertices.Clear();
+            triangles.Clear();
+            transparentTriangles.Clear();
+            uvs.Clear();
+        }
+        public bool IsActive
+        {
+            get { return _isActive; }
+            set
+            {
+                _isActive = value;
+                if (chunkObject != null)
+                {
+                    chunkObject.SetActive(value);
+                }
+            }
+        }
+        public bool isEditable
+        {
+            get
+            {
+                if (!IsBlockMapPopulated || threadLocked)
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+        }
+        bool IsBlockInChunk(int x, int y, int z)
+        {
+            if (x < 0 || x > chunkSize - 1 || y < 0 || y > chunkSize - 1 || z < 0 || z > chunkSize - 1)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+        public void EditBlock(Vector3 pos, byte newID)
+        {
+            int xCheck = Mathf.FloorToInt(pos.x);
+            int yCheck = Mathf.FloorToInt(pos.y);
+            int zCheck = Mathf.FloorToInt(pos.z);
+
+            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
+            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
+            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
+
+            blockMap[xCheck, yCheck, zCheck] = newID;
+
+            UpdateSurroundingBlocks(xCheck, yCheck, zCheck);
+
+            _updateChunk();
+        }
+        void UpdateSurroundingBlocks(int x, int y, int z)
+        {
+            Vector3 thisBlock = new Vector3(x, y, z);
+            for (int p = 0; p < 6; p++)
+            {
+                Vector3 currentBlock = thisBlock + Block.faceChecks[p];
+                if (!IsBlockInChunk((int)currentBlock.x, (int)currentBlock.y, (int)currentBlock.z))
+                {
+                    world.GetChunkFromVector3(currentBlock + position).UpdateChunk();
+                }
+            }
+        }
+        bool CheckBlock(Vector3 pos)
+        {
+            int x = Mathf.FloorToInt(pos.x);
+            int y = Mathf.FloorToInt(pos.y);
+            int z = Mathf.FloorToInt(pos.z);
+            if (!IsBlockInChunk(x, y, z))
+            {
+                return world.CheckForTransparentBlockInChunk(pos + position);
+            }
+            return world.blockType[blockMap[x, y, z]].IsTransparent;
+        }
+        public byte GetBlockFromGlobalVector3(Vector3 pos)
+        {
+            int xCheck = Mathf.FloorToInt(pos.x);
+            int yCheck = Mathf.FloorToInt(pos.y);
+            int zCheck = Mathf.FloorToInt(pos.z);
+
+            xCheck -= Mathf.FloorToInt(position.x);
+            yCheck -= Mathf.FloorToInt(position.y);
+            zCheck -= Mathf.FloorToInt(position.z);
+
+            return blockMap[xCheck, yCheck, zCheck];
+        }
+        public byte GetBlockID(Vector3 pos)
+        {
+            byte blockID = 0;
+            int xCheck = Mathf.FloorToInt(pos.x);
+            int yCheck = Mathf.FloorToInt(pos.y);
+            int zCheck = Mathf.FloorToInt(pos.z);
+
+            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
+            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
+            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
+            blockMap[xCheck, yCheck, zCheck] = blockID;
+            return blockID;
+        }
         void UpdateMeshData(Vector3 pos)
         {
             byte blockID = blockMap[(int)pos.x, (int)pos.y, (int)pos.z];
@@ -107,151 +251,6 @@ namespace WorldGenerator
                     vertexIndex += 4;
                 }
             }
-        }
-        bool IsBlockInChunk(int x, int y, int z)
-        {
-            if (x < 0 || x > chunkSize - 1 || y < 0 || y > chunkSize - 1 || z < 0 || z > chunkSize - 1)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
-        }
-        public byte GetBlockID(Vector3 pos)
-        {
-            byte blockID = 0;
-            int xCheck = Mathf.FloorToInt(pos.x);
-            int yCheck = Mathf.FloorToInt(pos.y);
-            int zCheck = Mathf.FloorToInt(pos.z);
-
-            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
-            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
-            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
-            blockMap[xCheck, yCheck, zCheck] = blockID;
-            return blockID;
-        }
-        public void EditBlock(Vector3 pos, byte newID) 
-        {
-            int xCheck = Mathf.FloorToInt(pos.x);
-            int yCheck = Mathf.FloorToInt(pos.y);
-            int zCheck = Mathf.FloorToInt(pos.z);
-
-            xCheck -= Mathf.FloorToInt(chunkObject.transform.position.x);
-            yCheck -= Mathf.FloorToInt(chunkObject.transform.position.y);
-            zCheck -= Mathf.FloorToInt(chunkObject.transform.position.z);
-
-            blockMap[xCheck, yCheck, zCheck] = newID;
-
-            UpdateSurroundingBlocks(xCheck,yCheck,zCheck);
-
-            UpdateChunk();
-        }
-        void UpdateSurroundingBlocks(int x, int y, int z)
-        {
-            Vector3 thisBlock = new Vector3(x,y,z);
-            for (int p = 0; p < 6; p++)
-            {
-                Vector3 currentBlock = thisBlock + Block.faceChecks[p];
-                if (!IsBlockInChunk((int)currentBlock.x, (int)currentBlock.y, (int)currentBlock.z))
-                {
-                    world.GetChunkFromVector3(currentBlock + position).UpdateChunk();
-                }
-            }
-        }
-        bool CheckBlock(Vector3 pos)
-        {
-            int x = Mathf.FloorToInt(pos.x);
-            int y = Mathf.FloorToInt(pos.y);
-            int z = Mathf.FloorToInt(pos.z);
-            if (!IsBlockInChunk(x,y,z))
-            {
-                return world.CheckForTransparentBlockInChunk(pos + position);
-            }
-            return world.blockType[blockMap[x, y, z]].IsTransparent;
-        }
-        public byte GetBlockFromGlobalVector3(Vector3 pos)
-        {
-            int xCheck = Mathf.FloorToInt(pos.x);
-            int yCheck = Mathf.FloorToInt(pos.y);
-            int zCheck = Mathf.FloorToInt(pos.z);
-
-            xCheck -= Mathf.FloorToInt(position.x);
-            yCheck -= Mathf.FloorToInt(position.y);
-            zCheck -= Mathf.FloorToInt(position.z);
-
-            return blockMap[xCheck, yCheck, zCheck];
-        }
-        public bool IsActive
-        {
-            get { return _isActive; }
-            set
-            {
-                _isActive = value;
-                if (chunkObject != null)
-                {
-                    chunkObject.SetActive(value);
-                }
-            }
-        }
-       
-        public bool isEditable
-        {
-            get
-            {
-                if (!IsBlockMapPopulated || threadLocked)
-                {
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
-        }
-        void ClearMeshData()
-        {
-            vertexIndex = 0;
-            vertices.Clear();
-            triangles.Clear();
-            transparentTriangles.Clear();
-            uvs.Clear();
-        }
-        public void UpdateChunk()
-        {
-            Thread ChunkThread = new Thread(new ThreadStart(_updateChunk));
-            ChunkThread.Start();
-        }
-        private void _updateChunk()
-        {
-            threadLocked = true;
-            while (modifications.Count > 0)
-            {
-                BlockMod m = modifications.Dequeue();
-                Vector3 pos = m.position -= position;
-                blockMap[(int)pos.x, (int)pos.y, (int)pos.z] = m.id;
-            }
-            ClearMeshData();
-            for (int x = 0; x < chunkSize; x++)
-            {
-                for (int y = 0; y < chunkSize; y++)
-                {
-                    for (int z = 0; z < chunkSize; z++)
-                    {
-                        if (world.blockType[blockMap[x,y,z]].isSolid)
-                        {
-                            UpdateMeshData(new Vector3(x, y, z));
-                        }
-                    }
-                }
-            }
-            lock (world.chunksToDraw)
-            {
-                world.chunksToDraw.Enqueue(this);
-            }
-
-            threadLocked = false;
         }
         public void CreateMesh()
         {

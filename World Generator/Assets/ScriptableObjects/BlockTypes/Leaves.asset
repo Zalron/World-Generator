@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Leaves
   m_EditorClassIdentifier: 
   blockName: Leaves
-  isSolid: 0
+  isSolid: 1
   IsTransparent: 1
   icon: {fileID: 0}
   backFaceTexture: 16

@@ -1382,7 +1382,7 @@ MonoBehaviour:
     icon: {fileID: 438160159}
   - itemID: 8
     icon: {fileID: 111269568}
-  - itemID: 9
+  - itemID: 11
     icon: {fileID: 30578697}
 --- !u!114 &929048557
 MonoBehaviour:
@@ -2436,7 +2436,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac1e516f548a2744cb439714252ed5d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  icon: {fileID: 0}
+  world: {fileID: 2056144482}
   seed: 1
   Player: {fileID: 1365154297}
   spawnPosition: {x: 0, y: 0, z: 0}

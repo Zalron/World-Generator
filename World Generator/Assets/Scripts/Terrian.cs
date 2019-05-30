@@ -4,15 +4,15 @@ using SimplexNoise;
 using UnityEngine;
 namespace WorldGenerator
 {
-    public class Terrian
+    public static class Terrian
     {
         public static float TreeGeneration(Vector2 position, float offset, float scale)
         {
             return Noise.Generate((position.x + 0.1f)/ Chunk.chunkSize * scale + offset, (position.y + 0.1f) / Chunk.chunkSize * scale + offset);
         }
-        public static int GenerateHeight(Vector2 pos, int terrianGround, int terrianHeight, float offset, float smooth, float octaves, float scale) // generates the stone height map using fractal brownian motion
+        public static int GenerateHeight(Vector2 pos, int terrianGround, int terrianHeight, float offset, float smooth, int octaves, float scale) // generates the stone height map using fractal brownian motion
         {
-            float height = Map(terrianGround, terrianHeight, 0, 1, FBM(pos.x * smooth, pos.y * smooth, offset, (int)octaves, scale));
+            float height = Map(terrianGround, terrianHeight, 0, 1, FBM(pos.x * smooth, pos.y * smooth, offset, octaves, scale));
             return Mathf.FloorToInt(height);
         }
         static float Map(float newmin, float newmax, float originalmin, float originalmax, float value) //generates a map for the fractal brownian motion to map on to

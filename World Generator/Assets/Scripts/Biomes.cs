@@ -13,7 +13,7 @@ namespace WorldGenerator
         public int terrainHeightFromSoild;
         [Header("Terrian Settings")]
         public float terrainOffset;
-        public float terrainOctaves;
+        public int terrainOctaves;
         public float terrainSmooth;
         public float terrainScale;
         public float terrainPersistance;

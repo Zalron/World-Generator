@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace WorldGenerator
 {
-    public class Structure
+    public static class Structure
     {
         public static Queue<BlockMod> MakeTree(Vector3 position,  int minTrunkHeight, int maxTrunkHeight)
         {
@@ -17,11 +17,11 @@ namespace WorldGenerator
             {
                 queue.Enqueue(new BlockMod(new Vector3(position.x, position.y + i, position.z), 6));
             }
-            for (int x = -3; x < 4; x++)
+            for (int x = -2; x < 3; x++)
             {
-                for (int y = 0; y < 7; y++)
+                for (int y = 0; y < 5; y++)
                 {
-                    for (int z = -3; z < 4; z++)
+                    for (int z = -2; z < 3; z++)
                     {
                         queue.Enqueue(new BlockMod(new Vector3(position.x + x, position.y + height + y, position.z + z), 11));
                     }

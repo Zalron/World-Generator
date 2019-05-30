@@ -8,13 +8,15 @@ namespace WorldGenerator
 {
     public class World : MonoBehaviour
     {
-        public Sprite icon;
+        public World world;
         public int seed;
+
         public Transform Player;
         public Vector3 spawnPosition;
 
         public Material material;
         public Material transparentMaterial;
+
         public BlockType[] blockType;
         public Biomes biome;
 
@@ -27,7 +29,6 @@ namespace WorldGenerator
         List<ChunkCoord> chunksToCreate = new List<ChunkCoord>();
         List<Chunk> chunksToUpdate = new List<Chunk>();
         public Queue<Chunk> chunksToDraw = new Queue<Chunk>();
-        private bool IsCreatingChunks;
 
         bool applyingModifications = false;
 
@@ -43,6 +44,7 @@ namespace WorldGenerator
         }
         public void Start()
         {
+            
             seed = Random.Range(1, 9999999);
             Random.InitState(seed);
             spawnPosition = new Vector3((WorldSizeInChunks * Chunk.chunkSize) / 2f, biome.solidGroundHeight + 20, (WorldSizeInChunks * Chunk.chunkSize) / 2f);
@@ -81,6 +83,21 @@ namespace WorldGenerator
             if (Input.GetKeyDown(KeyCode.F3))
             {
                 debugScreen.SetActive(!debugScreen.activeSelf);
+            }
+        }
+        void GenerateWorld()
+        {
+            Player.position = spawnPosition;
+            for (int x = (WorldSizeInChunks / 2) - ViewDistanceInChunks; x < (WorldSizeInChunks / 2) + ViewDistanceInChunks; x++)
+            {
+                for (int y = (WorldSizeInChunks / 2) - ViewDistanceInChunks; y < (WorldSizeInChunks / 2) + ViewDistanceInChunks; y++)
+                {
+                    for (int z = (WorldSizeInChunks / 2) - ViewDistanceInChunks; z < (WorldSizeInChunks / 2) + ViewDistanceInChunks; z++)
+                    {
+                        chunks[x, y, z] = new Chunk(new ChunkCoord(x, y, z), this, true);
+                        activeChunks.Add(new ChunkCoord(x, y, z));
+                    }
+                }
             }
         }
         void CreateChunk()
@@ -168,21 +185,6 @@ namespace WorldGenerator
                 chunks[c.x, c.y, c.z].IsActive = false;
             } 
         }
-        void GenerateWorld()
-        {
-            Player.position = spawnPosition;
-            for (int x = (WorldSizeInChunks/2) - ViewDistanceInChunks; x < (WorldSizeInChunks / 2) + ViewDistanceInChunks; x++)
-            {
-                for (int y = (WorldSizeInChunks / 2) - ViewDistanceInChunks; y < (WorldSizeInChunks / 2) + ViewDistanceInChunks; y++)
-                {
-                    for (int z = (WorldSizeInChunks / 2) - ViewDistanceInChunks; z < (WorldSizeInChunks / 2) + ViewDistanceInChunks; z++)
-                    {
-                        chunks[x, y, z] = new Chunk(new ChunkCoord(x,y,z), this, true);
-                        activeChunks.Add(new ChunkCoord(x, y, z));
-                    }
-                }
-            }
-        }
         void ApplyModifications()
         {
             applyingModifications = true;
@@ -191,14 +193,14 @@ namespace WorldGenerator
                 Queue<BlockMod> queue = modifications.Dequeue();
                 while (queue.Count > 0)
                 {
-                    BlockMod v = queue.Dequeue();
-                    ChunkCoord c = GetChunkCoordFromVector3(v.position);
+                    BlockMod b = queue.Dequeue();
+                    ChunkCoord c = GetChunkCoordFromVector3(b.position);
                     if (chunks[c.x, c.y, c.z] == null)
                     {
-                        chunks[c.x, c.y, c.z] = new Chunk(c, this, true);
+                        chunks[c.x, c.y, c.z] = new Chunk(c, world, true);
                         activeChunks.Add(c);
                     }
-                    chunks[c.x, c.y, c.z].modifications.Enqueue(v);
+                    chunks[c.x, c.y, c.z].modifications.Enqueue(b);
                     if (!chunksToUpdate.Contains(chunks[c.x, c.y, c.z]))
                     {
                         chunksToUpdate.Add(chunks[c.x, c.y, c.z]);

@@ -16,9 +16,9 @@ MonoBehaviour:
   isSolid: 1
   IsTransparent: 0
   icon: {fileID: 7196079105303995997, guid: 304de88c450e5e44196e8c074b37ba39, type: 3}
-  backFaceTexture: 7
-  frontFaceTexture: 7
-  topFaceTexture: 7
-  bottomFaceTexture: 7
-  leftFaceTexture: 7
-  rightFaceTexture: 7
+  backFaceTexture: 9
+  frontFaceTexture: 9
+  topFaceTexture: 9
+  bottomFaceTexture: 9
+  leftFaceTexture: 9
+  rightFaceTexture: 9
