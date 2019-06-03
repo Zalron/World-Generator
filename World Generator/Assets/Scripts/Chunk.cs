@@ -85,6 +85,7 @@ namespace WorldGenerator
             {
                 BlockMod m = modifications.Dequeue();
                 Vector3 pos = m.position -= position;
+                Debug.Log(m.position);
                 blockMap[(int)pos.x, (int)pos.y, (int)pos.z] = m.id;
             }
             ClearMeshData();
@@ -128,7 +129,7 @@ namespace WorldGenerator
                 }
             }
         }
-        public bool isEditable
+        public bool IsEditable
         {
             get
             {

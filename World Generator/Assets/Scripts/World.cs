@@ -36,7 +36,7 @@ namespace WorldGenerator
 
         public GameObject debugScreen;
 
-        public static readonly int ViewDistanceInChunks = 5;
+        public static readonly int ViewDistanceInChunks = 3;
         public static readonly int WorldSizeInChunks = 64;
         public static int WorldSizeInBlocks
         {
@@ -58,10 +58,10 @@ namespace WorldGenerator
             {
                 CheckViewDistance();
             }
-            if (!applyingModifications)
-            {
-                ApplyModifications();
-            }
+            //if (!applyingModifications)
+            //{
+            //    ApplyModifications();
+            //}
             if (chunksToCreate.Count > 0)
             {
                 CreateChunk();
@@ -74,7 +74,7 @@ namespace WorldGenerator
             {
                 lock (chunksToDraw)
                 {
-                    if (chunksToDraw.Peek().isEditable)
+                    if (chunksToDraw.Peek().IsEditable)
                     {
                         chunksToDraw.Dequeue().CreateMesh();
                     }
@@ -118,7 +118,7 @@ namespace WorldGenerator
             while (!updated && index < chunksToUpdate.Count - 1)
             {
 
-                if (chunksToUpdate[index].isEditable)
+                if (chunksToUpdate[index].IsEditable)
                 {
                     chunksToUpdate[index].UpdateChunk();
                     chunksToUpdate.RemoveAt(index);
@@ -191,10 +191,12 @@ namespace WorldGenerator
             while (modifications.Count > 0)
             {
                 Queue<BlockMod> queue = modifications.Dequeue();
+                Debug.Log(queue.Count);
                 while (queue.Count > 0)
                 {
                     BlockMod b = queue.Dequeue();
                     ChunkCoord c = GetChunkCoordFromVector3(b.position);
+                    Debug.Log(chunks);
                     if (chunks[c.x, c.y, c.z] == null)
                     {
                         chunks[c.x, c.y, c.z] = new Chunk(c, world, true);
@@ -206,7 +208,6 @@ namespace WorldGenerator
                         chunksToUpdate.Add(chunks[c.x, c.y, c.z]);
                     }
                 }
-
             }
             applyingModifications = false;
         }
@@ -218,7 +219,7 @@ namespace WorldGenerator
             {
                 return false;
             }
-            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].isEditable)
+            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].IsEditable)
             {
                 return blockType[chunks[thisChunk.x, thisChunk.y, thisChunk.z].GetBlockFromGlobalVector3(pos)].isSolid;
             }
@@ -232,7 +233,7 @@ namespace WorldGenerator
             {
                 return false;
             }
-            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].isEditable)
+            if (chunks[thisChunk.x, thisChunk.y, thisChunk.z] != null && chunks[thisChunk.x, thisChunk.y, thisChunk.z].IsEditable)
             {
                 return blockType[chunks[thisChunk.x, thisChunk.y, thisChunk.z].GetBlockFromGlobalVector3(pos)].IsTransparent;
             }
